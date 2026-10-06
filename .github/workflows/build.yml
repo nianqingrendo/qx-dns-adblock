@@ -48,20 +48,77 @@ jobs:
             dist/qx_dns_adblock.list \
             sources/stevenblack.txt \
             sources/hagezi-light.txt
+            
+      - name: Build Shadowrocket rules
+        run: |
+          python - <<'PY'
+          from pathlib import Path
 
+          qx_file = Path("dist/qx_dns_adblock.list")
+          sr_file = Path("dist/sr_dns_adblock.list")
+
+          if not qx_file.exists():
+              raise SystemExit("QX rule file not found")
+
+          count = 0
+
+          with qx_file.open("r", encoding="utf-8") as src, \
+               sr_file.open("w", encoding="utf-8", newline="\n") as dst:
+
+              dst.write("# Shadowrocket DNS AdBlock\n")
+              dst.write("# Auto-generated from qx_dns_adblock.list\n")
+              dst.write("# Do not edit manually\n")
+
+              for raw in src:
+                  line = raw.strip()
+
+                  if not line or line.startswith("#"):
+                      continue
+
+                  parts = [x.strip() for x in line.split(",")]
+
+                  if len(parts) != 3:
+                      continue
+
+                  rule_type, domain, policy = parts
+
+                  if rule_type.lower() != "host-suffix":
+                      continue
+
+                  if policy.lower() != "reject":
+                      continue
+
+                  if not domain:
+                      continue
+
+                  dst.write(f"DOMAIN-SUFFIX,{domain},REJECT\n")
+                  count += 1
+
+          if count == 0:
+              raise SystemExit("No Shadowrocket rules generated")
+
+          print(f"Generated {count} Shadowrocket rules")
+          PY
+          
       - name: Show build information
         run: |
-          echo "Generated rule file:"
+          echo "===== Quantumult X ====="
           wc -l dist/qx_dns_adblock.list
           du -h dist/qx_dns_adblock.list
           head -n 10 dist/qx_dns_adblock.list
+
+          echo ""
+          echo "===== Shadowrocket ====="
+          wc -l dist/sr_dns_adblock.list
+          du -h dist/sr_dns_adblock.list
+          head -n 10 dist/sr_dns_adblock.list
 
       - name: Commit generated rules
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add dist/qx_dns_adblock.list
+          git add dist/qx_dns_adblock.list dist/sr_dns_adblock.list
 
           if git diff --cached --quiet; then
             echo "No rule changes."
