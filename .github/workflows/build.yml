@@ -37,7 +37,7 @@ jobs:
             --retry 3 \
             --connect-timeout 20 \
             -o sources/hagezi-light.txt \
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/light.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/light.txt"
 
       - name: Build Quantumult X rules
         run: |
