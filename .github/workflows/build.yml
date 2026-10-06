@@ -1,0 +1,71 @@
+name: Build Quantumult X DNS AdBlock
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # 每天北京时间 04:20 自动更新
+    - cron: "20 20 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download DNS blocklists
+        run: |
+          mkdir -p sources
+
+          curl -fL \
+            --retry 3 \
+            --connect-timeout 20 \
+            -o sources/stevenblack.txt \
+            "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+
+          curl -fL \
+            --retry 3 \
+            --connect-timeout 20 \
+            -o sources/hagezi-light.txt \
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/domains/light.txt"
+
+      - name: Build Quantumult X rules
+        run: |
+          mkdir -p dist
+
+          python build_qx_dns_adblock.py \
+            --input sources/stevenblack.txt \
+            --input sources/hagezi-light.txt \
+            --allowlist qx_dns_adblock_allowlist.txt \
+            --output dist/qx_dns_adblock.list
+
+      - name: Show build information
+        run: |
+          echo "Generated rule file:"
+          wc -l dist/qx_dns_adblock.list
+          du -h dist/qx_dns_adblock.list
+          head -n 10 dist/qx_dns_adblock.list
+
+      - name: Commit generated rules
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add dist/qx_dns_adblock.list
+
+          if git diff --cached --quiet; then
+            echo "No rule changes."
+          else
+            git commit -m "chore: update DNS adblock rules"
+            git push
+          fi
