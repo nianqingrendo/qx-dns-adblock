@@ -44,10 +44,10 @@ jobs:
           mkdir -p dist
 
           python build_qx_dns_adblock.py \
-            --input sources/stevenblack.txt \
-            --input sources/hagezi-light.txt \
-            --allowlist qx_dns_adblock_allowlist.txt \
-            --output dist/qx_dns_adblock.list
+            sources/stevenblack.txt \
+            sources/hagezi-light.txt \
+            -a qx_dns_adblock_allowlist.txt \
+            -o dist/qx_dns_adblock.list
 
       - name: Show build information
         run: |
